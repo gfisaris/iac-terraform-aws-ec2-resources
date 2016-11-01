@@ -44,10 +44,10 @@ EOT
 #chmod 600 /aws.services/.aws/.credentials
 
 
-echo "## Install AWS CLi ##"
-mkdir -p /aws.services/cli/
-cd /aws.services/cli/
-pip install awscli
+#echo "## Install AWS CLi ##"
+#mkdir -p /aws.services/cli/
+#cd /aws.services/cli/
+#pip install awscli
 
 
 echo "## Install and Configure AWS SSM Service Agent ##"
@@ -55,24 +55,25 @@ mkdir -p /aws.services/ssm/
 cd /aws.services/ssm/
 curl https://amazon-ssm-eu-west-1.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o amazon-ssm-agent.rpm
 yum install -y amazon-ssm-agent.rpm
-systemctl enable amazon-ssm-agent.service
-systemctl start amazon-ssm-agent.service
-systemctl restart amazon-ssm-agent.service
-systemctl status amazon-ssm-agent.service -l
+
+#systemctl enable amazon-ssm-agent.service
+#systemctl start amazon-ssm-agent.service
+#systemctl restart amazon-ssm-agent.service
+#systemctl status amazon-ssm-agent.service -l
 
 
-echo "## Install and Configure AWS CodeDeploy Service Agent ##"
-mkdir -p /aws.services/codedeploy/
-cd /aws.services/codedeploy/
-wget https://aws-codedeploy-eu-west-1.s3.amazonaws.com/latest/install
-chmod +x ./install
-./install auto
-systemctl enable codedeploy-agent
-systemctl start codedeploy-agent
-systemctl restart codedeploy-agent
-systemctl status codedeploy-agent -l
+#echo "## Install and Configure AWS CodeDeploy Service Agent ##"
+#mkdir -p /aws.services/codedeploy/
+#cd /aws.services/codedeploy/
+#wget https://aws-codedeploy-eu-west-1.s3.amazonaws.com/latest/install
+#chmod +x ./install
+#./install auto
+#systemctl enable codedeploy-agent
+#systemctl start codedeploy-agent
+#systemctl restart codedeploy-agent
+#systemctl status codedeploy-agent -l
 
-
+:'
 echo "## Install and Configure AWS Cloudwatch Log Monitoring Service Agent"
 mkdir -p /aws.services/cloudwatch/
 cd /aws.services/cloudwatch/
@@ -167,6 +168,6 @@ systemctl status awslogs.service -l
 echo "###  Altering EC2 Instace ServiceStatus Tag FROM [EC2-Initialization-STARTed] TO [EC2-Initialization-ENDed]  ###"
 aws ec2 delete-tags --resources $ec2InstaceID --tags Key=ServiceStatus,Value=EC2-Initialization-STARTed
 aws ec2 create-tags --resources $ec2InstaceID --tags Key=ServiceStatus,Value=EC2-Initialization-ENDed
-
+'
 echo "###  Remove Cloud-init lockfile  ###"
 rm -rf /tmp/cloud-init.running

@@ -7,6 +7,15 @@ data "aws_ami" "centos7" {
   }
 }
 
+data "aws_ami" "amazonlinux-ecs_optimized" {
+  most_recent = true
+
+  filter {
+    name    = "name"
+    values  = ["*amazon-ecs-optimized*"]
+  }
+}
+
 /*
 AWS_AMI
 Use this data source to get the ID of a registered AMI for use in other resources.
