@@ -7,6 +7,7 @@ resource "aws_instance" "ec2_instance_public" {
 
   subnet_id = "${data.terraform_remote_state.aws_vpc.vpc_subnets_public[0]}"
 
+  iam_instance_profile = "${data.terraform_remote_state.aws_iam.IamRole_ecsContainerInstanceProfile}"
   key_name = "${aws_key_pair.app.key_name}"
 
   root_block_device {
@@ -16,18 +17,21 @@ resource "aws_instance" "ec2_instance_public" {
   }
 
   tags {
-    Name = "Amazon ECS Optmised - over a Public Subnet"
+    Name = "ECS Instance - over a Public Subnet"
   }
 }
 
 resource "aws_instance" "ec2_instance_private" {
   
-  ami = "${data.aws_ami.centos7.id}"
+  ami = "${data.aws_ami.amazonlinux-ecs_optimized.id}"
   instance_type = "t2.micro"
 
   user_data = "${template_file.ec2-instance_userdata.rendered}"
 
   subnet_id = "${data.terraform_remote_state.aws_vpc.vpc_subnets_private[0]}"
+
+  iam_instance_profile = "${data.terraform_remote_state.aws_iam.IamRole_ecsContainerInstanceProfile}"
+  key_name = "${aws_key_pair.app.key_name}"
 
   root_block_device {
     volume_type		= "gp2"
@@ -36,7 +40,7 @@ resource "aws_instance" "ec2_instance_private" {
   }
 
   tags {
-    Name = "over a Private Subnet"
+    Name = "ECS Instance - over a Private Subnet"
   }
 }
 

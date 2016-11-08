@@ -1,6 +1,6 @@
-resource "aws_launch_configuration" "node" {
+resource "aws_launch_configuration" "basic" {
   
-  name = "ec2-lc-${var.prj_environment}-${var.prj_ecosystem}-${var.prj_application}"
+  name = "${var.prj_eco}-${var.prj_app}-${var.prj_env}"
   
   image_id      = "${data.aws_ami.centos7.id}"
   instance_type = "${var.ec2_instance_type}"
