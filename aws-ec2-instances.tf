@@ -1,14 +1,14 @@
 resource "aws_instance" "ec2_instance_public" {
-  
-  ami = "${data.aws_ami.amazonlinux-ecs_optimized.id}"
+
+  ami = "${data.terraform_remote_state.aws_dcs.ami_amazonlinux_ecs_optimized_id}"
   instance_type = "t2.micro"
 
-  user_data = "${template_file.ec2-instance_userdata.rendered}"
+  user_data = "${template_file.ec2_instance_userdata.rendered}"
 
-  subnet_id = "${data.terraform_remote_state.aws_vpc.vpc_subnets_public[0]}"
+  subnet_id = "${data.terraform_remote_state.aws_vpc.ecs_cluster_vpc_subnet_public_id[0]}"
 
-  iam_instance_profile = "${data.terraform_remote_state.aws_iam.IamRole_ecsContainerInstanceProfile}"
-  key_name = "${aws_key_pair.app.key_name}"
+  iam_instance_profile = "${data.terraform_remote_state.aws_iam.ecs_cluster_iamInstanceProfile_ecsInstanceRole_name}"
+  key_name = "${aws_key_pair.ecs_cluster.key_name}"
 
   root_block_device {
     volume_type		= "gp2"
@@ -22,16 +22,16 @@ resource "aws_instance" "ec2_instance_public" {
 }
 
 resource "aws_instance" "ec2_instance_private" {
-  
-  ami = "${data.aws_ami.amazonlinux-ecs_optimized.id}"
+
+  ami = "${data.terraform_remote_state.aws_dcs.ami_amazonlinux_ecs_optimized_id}"
   instance_type = "t2.micro"
 
-  user_data = "${template_file.ec2-instance_userdata.rendered}"
+  user_data = "${template_file.ec2_instance_userdata.rendered}"
 
-  subnet_id = "${data.terraform_remote_state.aws_vpc.vpc_subnets_private[0]}"
+  subnet_id = "${data.terraform_remote_state.aws_vpc.ecs_cluster_vpc_subnet_private_id[0]}"
 
-  iam_instance_profile = "${data.terraform_remote_state.aws_iam.IamRole_ecsContainerInstanceProfile}"
-  key_name = "${aws_key_pair.app.key_name}"
+  iam_instance_profile = "${data.terraform_remote_state.aws_iam.ecs_cluster_iamInstanceProfile_ecsInstanceRole_name}"
+  key_name = "${aws_key_pair.ecs_cluster.key_name}"
 
   root_block_device {
     volume_type		= "gp2"
@@ -43,5 +43,3 @@ resource "aws_instance" "ec2_instance_private" {
     Name = "ECS Instance - over a Private Subnet"
   }
 }
-
-

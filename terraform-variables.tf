@@ -1,3 +1,10 @@
+##  AWS Account Information  ##
+
+  variable "tf_provider_aws_region"     {description  = "AWS Region     "}
+  variable "tf_provider_aws_access_key" {decscription = "AWS Access Key "}
+  variable "tf_provider_aws_secret_key" {description  = "AWS Secret Key "}
+
+
 ##  Project's Information  ##
 
   variable "project_name" {
@@ -21,21 +28,6 @@
     description = "On which Environment will the Web Application be launched | [Valid Values: prod | beta | stg]"
   }
 
-  
-##  AWS Account Information  ##
-
-  variable "aws_access_key" {
-    decscription = "AWS Access Key"
-  }
-  
-  variable "aws_secret_key" {
-    description = "AWS Secret Key"
-  }
-  
-  variable "aws_region" {
-    description = "Which AWS Region will be used ?"
-    default = "eu-central-1"
-  }
 
 
 #  EC2 | Instances Parameters  ##
@@ -57,4 +49,3 @@
     default = 10
     description = "Size (in GB) of the Root Volume for the EC2 Instances"
   }
-
