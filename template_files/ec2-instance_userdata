@@ -14,10 +14,14 @@ echo "## Enable EPEL Yum Repo ##"
 yum install -y epel-release
 
 echo "## Install Basic DevTools [ruby/python/wget/git] ##"
-yum install -y ruby
-yum install -y python-pip
 yum install -y git
 yum install -y wget
+yum install -y ruby
+
+yum install -y python
+easy_install pip
+ln -s /usr/local/bin/pip /usr/bin/pip
+
 
 echo "###  Installation and Configuration of AWS Services and Tools  ###"
 
@@ -37,18 +41,18 @@ output=json
 EOT
 
 
-#echo "#### Install and Configure AWS EFS Mounts ####"
-#yum install -y nfs-utils
-#mkdir -p /mnt/efs.mounts
-#chown -R ec2-user:ec2-user /mnt/efs.mounts/
+echo "#### Install and Configure AWS EFS Mounts ####"
+yum install -y nfs-utils
+mkdir -p /mnt/efs.mounts
 
-#echo "##-- ECS Common Folder --##"
-#ECS_Common_Localpath="/mnt/efs.mounts/ecs_common"
-#ECS_Common_Remotepath=$(echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).$EFS_ECS_Common.efs.${activeRegion}.amazonaws.com")
-#mkdir -p $ECS_Common_Localpath
-#chown -R ec2-user:ec2-user $ECS_Common_Localpath
-#echo "$ECS_Common_Remotepath:/ $ECS_Common_Localpath nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0" >> /etc/fstab
-#mount -a -t nfs4
+echo "##-- ECS Common Folder --##"
+EFS_ECS_Common="fs-9734d0ee"
+ECS_Common_Localpath="/mnt/efs.mounts/ecs_common"
+ECS_Common_Remotepath=$(echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).$EFS_ECS_Common.efs.${activeRegion}.amazonaws.com")
+mkdir -p $ECS_Common_Localpath
+chown -R ec2-user:ec2-user $ECS_Common_Localpath
+echo "$ECS_Common_Remotepath:/ $ECS_Common_Localpath nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0" >> /etc/fstab
+mount -a -t nfs4
 
 
 
@@ -59,22 +63,21 @@ EOT
 #chmod 600 /aws.services/.aws/.credentials
 
 
-#echo "## Install AWS CLi ##"
-#mkdir -p /aws.services/cli/
-#cd /aws.services/cli/
-#pip install awscli
+echo "## Install AWS CLi ##"
+mkdir -p /aws.services/cli/
+cd /aws.services/cli/
+pip install awscli
 
 
 echo "## Install and Configure AWS SSM Service Agent ##"
 mkdir -p /aws.services/ssm/
 cd /aws.services/ssm/
+# curl https://amazon-ssm-${activeRegion}.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o amazon-ssm-agent.rpm
 curl https://amazon-ssm-eu-west-1.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o amazon-ssm-agent.rpm
 yum install -y amazon-ssm-agent.rpm
 
-#systemctl enable amazon-ssm-agent.service
-#systemctl start amazon-ssm-agent.service
-#systemctl restart amazon-ssm-agent.service
-#systemctl status amazon-ssm-agent.service -l
+start amazon-ssm-agent
+status amazon-ssm-agent
 
 
 #echo "## Install and Configure AWS CodeDeploy Service Agent ##"
@@ -88,7 +91,7 @@ yum install -y amazon-ssm-agent.rpm
 #systemctl restart codedeploy-agent
 #systemctl status codedeploy-agent -l
 
-:'
+
 echo "## Install and Configure AWS Cloudwatch Log Monitoring Service Agent"
 mkdir -p /aws.services/cloudwatch/
 cd /aws.services/cloudwatch/
@@ -99,7 +102,7 @@ state_file = /var/awslogs/state/agent-state
 EOT
 wget https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py
 chmod +x ./awslogs-agent-setup.py
-python ./awslogs-agent-setup.py --region eu-west-1 --non-interactive --configfile=/aws.services/cloudwatch/awslogs.conf
+python ./awslogs-agent-setup.py --region ${activeRegion} --non-interactive --configfile=/aws.services/cloudwatch/awslogs.conf
 mkdir -p /var/awslogs/etc/config/
 
 
@@ -142,24 +145,24 @@ log_stream_name = {instance_id}
 log_group_name = AWS.Cloudwatch-AgentInstallation.logs
 EOT
 
-echo "## AWS Cloudwatch LogGroups: CodeDeploy Service Agent"
-touch /var/awslogs/etc/config/AWS-CodeDeploy.logs.conf
-
-cat <<EOT >> /var/awslogs/etc/config/AWS-CodeDeploy.logs.conf
-[AWS.CodeDeploy-Agent.logs]
-datetime_format = %Y-%m-%d %H:%M:%S
-file = /var/log/aws/codedeploy-agent/codedeploy-agent.log
-log_stream_name = {instance_id}
-log_group_name = AWS.CodeDeploy-Agent.logs
-[AWS.CodeDeploy-Updater.logs]
-file = /tmp/codedeploy-agent.update.log
-log_stream_name = {instance_id}
-log_group_name = AWS.CodeDeploy-Updater.logs
-[AWS.CodeDeploy-Deployment.logs]
-file = /opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log
-log_stream_name = {instance_id}
-log_group_name = AWS.CodeDeploy-Deployments.logs
-EOT
+# echo "## AWS Cloudwatch LogGroups: CodeDeploy Service Agent"
+# touch /var/awslogs/etc/config/AWS-CodeDeploy.logs.conf
+#
+# cat <<EOT >> /var/awslogs/etc/config/AWS-CodeDeploy.logs.conf
+# [AWS.CodeDeploy-Agent.logs]
+# datetime_format = %Y-%m-%d %H:%M:%S
+# file = /var/log/aws/codedeploy-agent/codedeploy-agent.log
+# log_stream_name = {instance_id}
+# log_group_name = AWS.CodeDeploy-Agent.logs
+# [AWS.CodeDeploy-Updater.logs]
+# file = /tmp/codedeploy-agent.update.log
+# log_stream_name = {instance_id}
+# log_group_name = AWS.CodeDeploy-Updater.logs
+# [AWS.CodeDeploy-Deployment.logs]
+# file = /opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log
+# log_stream_name = {instance_id}
+# log_group_name = AWS.CodeDeploy-Deployments.logs
+# EOT
 
 echo "## AWS Cloudwatch LogGroups: SSM Service Agent"
 touch /var/awslogs/etc/config/AWS-SSM.logs.conf
@@ -172,18 +175,21 @@ log_stream_name = {instance_id}
 log_group_name = AWS.SSM-Agent.logs
 EOT
 
+chkconfig awslogs on
+service awslogs start
+service awslogs restart
+service awslogs status
 
-systemctl enable awslogs.service
-systemctl start awslogs.service
-systemctl restart awslogs.service
-systemctl status awslogs.service -l
+# systemctl enable awslogs.service
+# systemctl start awslogs.service
+# systemctl restart awslogs.service
+# systemctl status awslogs.service -l
 
 
 
-echo "###  Altering EC2 Instace ServiceStatus Tag FROM [EC2-Initialization-STARTed] TO [EC2-Initialization-ENDed]  ###"
-aws ec2 delete-tags --resources $ec2InstaceID --tags Key=ServiceStatus,Value=EC2-Initialization-STARTed
-aws ec2 create-tags --resources $ec2InstaceID --tags Key=ServiceStatus,Value=EC2-Initialization-ENDed
-'
+# echo "###  Altering EC2 Instace ServiceStatus Tag FROM [EC2-Initialization-STARTed] TO [EC2-Initialization-ENDed]  ###"
+# aws ec2 delete-tags --resources $ec2InstaceID --tags Key=ServiceStatus,Value=EC2-Initialization-STARTed
+# aws ec2 create-tags --resources $ec2InstaceID --tags Key=ServiceStatus,Value=EC2-Initialization-ENDed
 
 echo "### Configure ECS Service Agent ###"
 echo "ECS_CLUSTER=${ecs_cluster_name}" >> /etc/ecs/ecs.config
