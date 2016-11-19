@@ -1,116 +1,93 @@
 #!/bin/bash
 
-echo "###  Create Cloud-init lockfile  ###"
-touch /tmp/cloud-init.running
+echo "####  Create Cloud-init lockfile  ####"
+  touch /tmp/cloud-init.running
 
 
-echo "###  Prepare OS  ###"
+echo "####  Prepare OS  ####"
 
-echo "## Clean Yum Cache and Update Everything ##"
-yum clean all
-yum update -y
+  echo "## Clean Yum Cache and Update Everything"
+    yum clean all
+    yum update -y
 
-echo "## Enable EPEL Yum Repo ##"
-yum install -y epel-release
+  echo "## Enable EPEL Yum Repo"
+    yum install -y epel-release
 
-echo "## Install Basic DevTools [ruby/python/wget/git] ##"
-yum install -y git
-yum install -y wget
-yum install -y ruby
+  echo "## Install Basic DevTools [ruby/python/wget/git]"
+    yum install -y git
+    yum install -y wget
+    yum install -y ruby
 
-yum install -y python
-easy_install pip
-ln -s /usr/local/bin/pip /usr/bin/pip
+    yum install -y python
+      easy_install pip
+      ln -s /usr/local/bin/pip /usr/bin/pip
 
 
-echo "###  Installation and Configuration of AWS Services and Tools  ###"
+echo "####  Installation and Configuration of AWS Services and Tools  ####"
 
-echo "## Configure AWS IAM User (EC2 Instance Root) Credentials"
-mkdir -p /root/.aws/
-touch /root/.aws/credentials
-cat <<EOT >> /root/.aws/credentials
+  echo "## Configure AWS IAM User (EC2 Instance Root) Credentials"
+    mkdir -p /root/.aws/
+    touch /root/.aws/credentials
+    cat <<EOT >> /root/.aws/credentials
 [default]
 aws_access_key_id=${iamAccessKey}
 aws_secret_access_key=${iamSecretKey}
 EOT
-touch /root/.aws/config
-cat <<EOT >> /root/.aws/config
+    touch /root/.aws/config
+    cat <<EOT >> /root/.aws/config
 [default]
 region=${activeRegion}
 output=json
 EOT
 
 
-echo "#### Install and Configure AWS EFS Mounts ####"
-yum install -y nfs-utils
-mkdir -p /mnt/efs.mounts
+  echo "## Install AWS CLi"
+    mkdir -p /aws.services/cli/
+    cd /aws.services/cli/
+    pip install awscli
 
-echo "##-- ECS Common Folder --##"
-ECS_Common_Localpath="/mnt/efs.mounts/ecs_common"
-ECS_Common_Remotepath=$(echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).${efs_ecs_common}.efs.${activeRegion}.amazonaws.com")
-mkdir -p $ECS_Common_Localpath
-chown -R ec2-user:ec2-user $ECS_Common_Localpath
-echo "$ECS_Common_Remotepath:/ $ECS_Common_Localpath nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0" >> /etc/fstab
-mount -a -t nfs4
+  echo "## Install and Configure AWS SSM Service Agent"
+    mkdir -p /aws.services/ssm/
+    cd /aws.services/ssm/
+    # curl https://amazon-ssm-${activeRegion}.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o amazon-ssm-agent.rpm
+    curl https://amazon-ssm-eu-west-1.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o amazon-ssm-agent.rpm
+    yum install -y amazon-ssm-agent.rpm
 
+    start amazon-ssm-agent
+    status amazon-ssm-agent
 
+  echo "## Install and Configure AWS EFS Mounts"
+    yum install -y nfs-utils
+    mkdir -p /mnt/efs.mounts
 
-#cd /
-#mkdir -p /aws.services/.aws/
-#cd /aws.services/.aws/
-#echo YOUR_AWS_ACCESS_KEY_HERE:YOUR_AWS_SECRET_KEY_HERE > /aws.services/.aws/.credentials
-#chmod 600 /aws.services/.aws/.credentials
+    echo "#- ECS Common Folder"
+      ECS_Common_Localpath="/mnt/efs.mounts/ecs_common"
+      ECS_Common_Remotepath=$(echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).${efs_ecs_common}.efs.${activeRegion}.amazonaws.com")
+      mkdir -p $ECS_Common_Localpath
+      chown -R ec2-user:ec2-user $ECS_Common_Localpath
+      echo "$ECS_Common_Remotepath:/ $ECS_Common_Localpath nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0" >> /etc/fstab
+      mount -a -t nfs4
 
-
-echo "## Install AWS CLi ##"
-mkdir -p /aws.services/cli/
-cd /aws.services/cli/
-pip install awscli
-
-
-echo "## Install and Configure AWS SSM Service Agent ##"
-mkdir -p /aws.services/ssm/
-cd /aws.services/ssm/
-# curl https://amazon-ssm-${activeRegion}.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o amazon-ssm-agent.rpm
-curl https://amazon-ssm-eu-west-1.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o amazon-ssm-agent.rpm
-yum install -y amazon-ssm-agent.rpm
-
-start amazon-ssm-agent
-status amazon-ssm-agent
-
-
-#echo "## Install and Configure AWS CodeDeploy Service Agent ##"
-#mkdir -p /aws.services/codedeploy/
-#cd /aws.services/codedeploy/
-#wget https://aws-codedeploy-eu-west-1.s3.amazonaws.com/latest/install
-#chmod +x ./install
-#./install auto
-#systemctl enable codedeploy-agent
-#systemctl start codedeploy-agent
-#systemctl restart codedeploy-agent
-#systemctl status codedeploy-agent -l
-
-
-echo "## Install and Configure AWS Cloudwatch Log Monitoring Service Agent"
-mkdir -p /aws.services/cloudwatch/
-cd /aws.services/cloudwatch/
-touch awslogs.conf
-cat <<EOT >> /aws.services/cloudwatch/awslogs.conf
+  echo "## Install and Configure AWS Cloudwatch Log Monitoring Service Agent"
+    mkdir -p /aws.services/cloudwatch/
+    cd /aws.services/cloudwatch/
+    touch awslogs.conf
+    cat <<EOT >> /aws.services/cloudwatch/awslogs.conf
 [general]
 state_file = /var/awslogs/state/agent-state
 EOT
-wget https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py
-chmod +x ./awslogs-agent-setup.py
-python ./awslogs-agent-setup.py --region ${activeRegion} --non-interactive --configfile=/aws.services/cloudwatch/awslogs.conf
-mkdir -p /var/awslogs/etc/config/
+
+    wget https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py
+    chmod +x ./awslogs-agent-setup.py
+    python ./awslogs-agent-setup.py --region ${activeRegion} --non-interactive --configfile=/aws.services/cloudwatch/awslogs.conf
+    mkdir -p /var/awslogs/etc/config/
 
 
-echo "##-- AWS Cloudwatch Log Monitoring Service Agent Configuration Files --##"
+  echo "## AWS Cloudwatch Log Monitoring Service Agent Configuration Files"
 
-echo "## AWS Cloudwatch LogGroups: EC2 Instance"
-touch /var/awslogs/etc/config/AWS.EC2-Instance.logs.conf
-
-cat <<EOT >> /var/awslogs/etc/config/AWS.EC2-Instance.logs.conf
+    echo "#- AWS Cloudwatch LogGroups: EC2 Instance"
+      touch /var/awslogs/etc/config/AWS.EC2-Instance.logs.conf
+      cat <<EOT >> /var/awslogs/etc/config/AWS.EC2-Instance.logs.conf
 [AWS.EC2-Instance.Initialization.logs]
 datetime_format = %Y-%m-%d %H:%M:%S
 file = /var/log/cloud-init.log
@@ -128,10 +105,9 @@ log_stream_name = {instance_id}
 log_group_name = AWS.EC2-Instance.Messages.logs
 EOT
 
-echo "## AWS Cloudwatch LogGroups: AWS Cloudwatch Service Agent"
-touch /var/awslogs/etc/config/AWS-Cloudwatch.logs.conf
-
-cat <<EOT >> /var/awslogs/etc/config/AWS-Cloudwatch.logs.conf
+    echo "#- AWS Cloudwatch LogGroups: AWS Cloudwatch Service Agent"
+      touch /var/awslogs/etc/config/AWS-Cloudwatch.logs.conf
+      cat <<EOT >> /var/awslogs/etc/config/AWS-Cloudwatch.logs.conf
 [AWS.Cloudwatch-Agent.logs]
 datetime_format = %Y-%m-%d %H:%M:%S
 file = /var/log/awslogs.log
@@ -144,29 +120,9 @@ log_stream_name = {instance_id}
 log_group_name = AWS.Cloudwatch-AgentInstallation.logs
 EOT
 
-# echo "## AWS Cloudwatch LogGroups: CodeDeploy Service Agent"
-# touch /var/awslogs/etc/config/AWS-CodeDeploy.logs.conf
-#
-# cat <<EOT >> /var/awslogs/etc/config/AWS-CodeDeploy.logs.conf
-# [AWS.CodeDeploy-Agent.logs]
-# datetime_format = %Y-%m-%d %H:%M:%S
-# file = /var/log/aws/codedeploy-agent/codedeploy-agent.log
-# log_stream_name = {instance_id}
-# log_group_name = AWS.CodeDeploy-Agent.logs
-# [AWS.CodeDeploy-Updater.logs]
-# file = /tmp/codedeploy-agent.update.log
-# log_stream_name = {instance_id}
-# log_group_name = AWS.CodeDeploy-Updater.logs
-# [AWS.CodeDeploy-Deployment.logs]
-# file = /opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log
-# log_stream_name = {instance_id}
-# log_group_name = AWS.CodeDeploy-Deployments.logs
-# EOT
-
-echo "## AWS Cloudwatch LogGroups: SSM Service Agent"
-touch /var/awslogs/etc/config/AWS-SSM.logs.conf
-
-cat <<EOT >> /var/awslogs/etc/config/AWS-SSM.logs.conf
+    echo "#- AWS Cloudwatch LogGroups: SSM Service Agent"
+      touch /var/awslogs/etc/config/AWS-SSM.logs.conf
+      cat <<EOT >> /var/awslogs/etc/config/AWS-SSM.logs.conf
 [AWS.SSM-Agent.logs]
 datetime_format = %Y-%m-%d %H:%M:%S
 file = /var/log/amazon/ssm/amazon-ssm-agent.log
@@ -174,25 +130,19 @@ log_stream_name = {instance_id}
 log_group_name = AWS.SSM-Agent.logs
 EOT
 
-chkconfig awslogs on
-service awslogs start
-service awslogs restart
-service awslogs status
+    chkconfig awslogs on
+    service awslogs start
+    service awslogs restart
+    service awslogs status
 
-# systemctl enable awslogs.service
-# systemctl start awslogs.service
-# systemctl restart awslogs.service
-# systemctl status awslogs.service -l
 
+  echo "## Configure ECS Service Agent ##"
+    echo "ECS_CLUSTER=${ecs_cluster_name}" >> /etc/ecs/ecs.config
 
 
 # echo "###  Altering EC2 Instace ServiceStatus Tag FROM [EC2-Initialization-STARTed] TO [EC2-Initialization-ENDed]  ###"
 # aws ec2 delete-tags --resources $ec2InstaceID --tags Key=ServiceStatus,Value=EC2-Initialization-STARTed
 # aws ec2 create-tags --resources $ec2InstaceID --tags Key=ServiceStatus,Value=EC2-Initialization-ENDed
 
-echo "### Configure ECS Service Agent ###"
-echo "ECS_CLUSTER=${ecs_cluster_name}" >> /etc/ecs/ecs.config
-
-
-echo "### Remove Cloud-init lockfile ###"
-rm -rf /tmp/cloud-init.running
+echo "#### Remove Cloud-init lockfile ####"
+  rm -rf /tmp/cloud-init.running
