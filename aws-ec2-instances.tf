@@ -10,6 +10,8 @@ resource "aws_instance" "ec2_instance_public" {
   iam_instance_profile = "${data.terraform_remote_state.aws_iam.ecs_cluster_iamInstanceProfile_ecsInstanceRole_name}"
   key_name = "${aws_key_pair.ecs_cluster.key_name}"
 
+  vpc_security_group_ids = ["${data.terraform_remote_state.aws_vpc.security_group_ec2_instances_ecs_cluster_id}"]
+
   root_block_device {
     volume_type		= "gp2"
     volume_size		= "${var.ec2_instance-root_volume_size}"
@@ -32,6 +34,8 @@ resource "aws_instance" "ec2_instance_private" {
 
   iam_instance_profile = "${data.terraform_remote_state.aws_iam.ecs_cluster_iamInstanceProfile_ecsInstanceRole_name}"
   key_name = "${aws_key_pair.ecs_cluster.key_name}"
+
+  vpc_security_group_ids = ["${data.terraform_remote_state.aws_vpc.security_group_ec2_instances_ecs_cluster_id}"]
 
   root_block_device {
     volume_type		= "gp2"
