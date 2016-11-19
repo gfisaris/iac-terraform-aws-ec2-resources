@@ -1,4 +1,4 @@
-resource "aws_key_pair" "ecs_cluster" {
-  key_name    = "ecs_cluster"
+resource "aws_key_pair" "master" {
+  key_name    = "${data.terraform_remote_state.project.name}"
   public_key  = "${var.ssh_keypair_public}"
 }
