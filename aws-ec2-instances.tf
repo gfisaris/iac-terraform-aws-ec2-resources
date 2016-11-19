@@ -25,6 +25,8 @@ resource "aws_instance" "ec2_instance_public" {
 
 resource "aws_instance" "ec2_instance_private" {
 
+  count = 0
+
   ami = "${data.terraform_remote_state.aws_dcs.ami_amazonlinux_ecs_optimized_id}"
   instance_type = "t2.micro"
 
